@@ -74,7 +74,7 @@ if len(prediction_dates) != 2:
 stock_ticker = st.sidebar.text_input("Enter Stock Ticker:", "AAPL")
 
 # OpenWeather API Key
-api_key = st.sidebar.text_input("Enter OpenWeather API Key:")
+api_key = "182a5f17141d7682e68478bb12efb8b2"
 
 # Optional: Generative AI summary (RQ6 - Could)
 generate_ai = st.sidebar.checkbox("Generate AI Summary Report (Optional)", value=False)
@@ -177,11 +177,6 @@ if st.sidebar.button("Run Analysis"):
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
-            with tabs[1]:
-                st.header("Future Prediction")
-                st.write("Future prediction functionality will be integrated here. (Placeholder)")
-                # Future prediction code integrating machine learning (RQ12) can be added here.
-
             with tabs[2]:
                 st.header("Sentiment Analysis")
                 if perform_sentiment:
@@ -194,8 +189,3 @@ if st.sidebar.button("Run Analysis"):
                 st.header("Combined Analysis")
                 st.write("Combined analysis of stock, weather, and sentiment data will be shown here. (Placeholder)")
 
-            st.write("""
-            ---
-            **Note:** This dashboard is designed to be extensible for future indices, weather variables, and time periods.
-            It uses open-source libraries for historical data analysis and integrates machine learning models for future prediction.
-            """)
