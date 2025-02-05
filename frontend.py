@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="Weather & Stock Analysis Dashboard", layout="wide")
 
 # Function to fetch high-resolution weather forecast data
-def get_weather_data(api_key, city="New York"):
+def get_weather_data(api_key, city):
     url = f"http://api.openweathermap.org/data/2.5/forecast?q={city}&appid={api_key}&units=metric"
     response = requests.get(url)
     if response.status_code == 200:
@@ -27,12 +27,22 @@ def get_weather_data(api_key, city="New York"):
 
 # Company ticker mapping
 company_ticker_map = {
-    "Apple": "AAPL",
-    "Google": "GOOG",
-    "Amazon": "AMZN",
-    "Tesla": "TSLA",
-    "BMW": "BMW.DE",
-    "Sony": "SONY"
+    "Coca-Cola": "KO",
+    "Nestle": "NSRGY",
+    "Walmart": "WMT",
+    "BP": "BP",
+    "Starbucks": "SBUX",
+    "Pfizer": "PFE",
+    "International Airlines Group": "IAG",
+    "TUI Group": "TUI",
+    "NVIDIA": "NVDA"
+}
+
+# Index ticker mapping with associated country
+index_ticker_map = {
+    "S&P 500": ("^GSPC", "New York"),
+    "FTSE 100": ("^FTSE", "London"),
+    "Nikkei 225": ("^N225", "Tokyo")
 }
 
 # --- Main Title ---
@@ -42,14 +52,14 @@ tabs = st.tabs(["Company Analysis", "Index Analysis", "Sentiment Analysis", "Com
 
 with tabs[0]:
     st.header("Company Performance Analysis")
-    country = st.selectbox("Select Country", options=["USA", "UK", "Germany", "France", "Japan"], index=0)
     company_name = st.selectbox("Select Company", options=list(company_ticker_map.keys()), index=0)
-    weather_vars = st.multiselect("Select Weather Variables", options=["Temperature", "Humidity", "Wind Speed", "Precipitation"], default=["Temperature"])
+    weather_var = st.selectbox("Select Weather Variable", options=["Temperature", "Precipitation"])
     historical_dates = st.date_input("Select Historical Period", [dt.datetime.today() - dt.timedelta(days=30), dt.datetime.today()])
     api_key = "182a5f17141d7682e68478bb12efb8b2"
 
     if st.button("Run Company Analysis"):
         stock_ticker = company_ticker_map[company_name]
+        weather_city = "New York"
         if not api_key or not stock_ticker:
             st.error("Please enter both Stock Ticker and OpenWeather API Key!")
         else:
@@ -58,31 +68,45 @@ with tabs[0]:
             stock_data = yf.download(stock_ticker, start=start_date, end=end_date, interval="1d")
             if not stock_data.empty:
                 stock_df = stock_data.reset_index()
-                if isinstance(stock_df.columns, pd.MultiIndex):
-                    stock_df.columns = [col[0] if isinstance(col, tuple) else col for col in stock_df.columns]
                 stock_df.rename(columns={"Date": "Datetime"}, inplace=True)
                 stock_df["Datetime"] = pd.to_datetime(stock_df["Datetime"])
             else:
                 stock_df = pd.DataFrame()
-            weather_city = "New York"
             weather_data = get_weather_data(api_key, city=weather_city)
             if not stock_df.empty and weather_data is not None:
-                stock_df = stock_df.sort_values("Datetime")
-                weather_data = weather_data.sort_values("Datetime")
                 merged_data = pd.merge_asof(stock_df, weather_data, on="Datetime", direction="nearest", tolerance=pd.Timedelta("90min"))
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(x=merged_data["Datetime"], y=merged_data["Close"], mode="lines", name=f"{company_name} Close Price", line=dict(color="blue")))
-                if "Temperature" in weather_vars:
+                if "Temperature" in weather_var:
                     fig.add_trace(go.Scatter(x=merged_data["Datetime"], y=merged_data["Temperature"], mode="lines+markers", name=f"{weather_city} Temperature (°C)", line=dict(color="red"), yaxis="y2"))
                 fig.update_layout(title=f"{company_name} Stock Price and {weather_city} Temperature", xaxis_title="Datetime", yaxis=dict(title="Stock Price (USD)", color="blue"), yaxis2=dict(title="Temperature (°C)", color="red", overlaying="y", side="right"), legend=dict(x=0.1, y=1.1), hovermode="x unified")
                 st.plotly_chart(fig, use_container_width=True)
 
 with tabs[1]:
     st.header("Index Analysis")
-    primary_index = st.selectbox("Select Primary Share Index", options=["S&P 500", "Dow Jones", "NASDAQ"], index=0)
-    multi_indices = st.multiselect("Select Additional Indices (Optional)", options=["S&P 500", "Dow Jones", "NASDAQ", "FTSE 100", "DAX"], default=["S&P 500"])
-    index_dates = st.date_input("Select Index Period", [dt.datetime.today(), dt.datetime.today() + dt.timedelta(days=30)])
-    st.write("Index analysis will be displayed here. (Placeholder)")
+    primary_index = st.selectbox("Select Primary Share Index", options=list(index_ticker_map.keys()), index=0)
+    index_dates = st.date_input("Select Index Period", [dt.datetime.today() - dt.timedelta(days=30), dt.datetime.today()])
+
+    if st.button("Run Index Analysis"):
+        index_ticker, country = index_ticker_map[primary_index]
+        weather_city = country
+        start_date = index_dates[0].strftime("%Y-%m-%d")
+        end_date = index_dates[1].strftime("%Y-%m-%d")
+        index_data = yf.download(index_ticker, start=start_date, end=end_date, interval="1d")
+        if not index_data.empty:
+            index_df = index_data.reset_index()
+            index_df.rename(columns={"Date": "Datetime"}, inplace=True)
+            index_df.columns = [col[0] if isinstance(col, tuple) else col for col in index_df.columns]
+            index_df["Datetime"] = pd.to_datetime(index_df["Datetime"])
+        else:
+            index_df = pd.DataFrame()
+        weather_data = get_weather_data(api_key, city=weather_city)
+        if not index_df.empty and weather_data is not None:
+            merged_data = pd.merge_asof(index_df.sort_values("Datetime"), weather_data.sort_values("Datetime"), on="Datetime", direction="nearest", tolerance=pd.Timedelta("90min"))
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=merged_data["Datetime"], y=merged_data["Close"], mode="lines", name=f"{primary_index} Close Price", line=dict(color="blue")))
+            fig.update_layout(title=f"{primary_index} Performance and {weather_city} Temperature", xaxis_title="Datetime", yaxis=dict(title="Index Value", color="blue"), hovermode="x unified")
+            st.plotly_chart(fig, use_container_width=True)
 
 with tabs[2]:
     st.header("Sentiment Analysis")
