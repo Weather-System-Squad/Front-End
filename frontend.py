@@ -148,7 +148,7 @@ if st.sidebar.button("Run Analysis"):
             )
 
             # --- Create Tabs for Analysis ---
-            tabs = st.tabs(["Historical Analysis", "Future Prediction", "Sentiment Analysis", "Combined Analysis"])
+            tabs = st.tabs(["Companies & Countries Analysis", "Indexes and Country Analysis", "Sentiment Analysis", "Combined Analysis"])
 
             with tabs[0]:
                 st.header("Historical Performance Analysis")
