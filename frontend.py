@@ -50,6 +50,13 @@ company_ticker_map = {
     "TUI Group": "TUI", "NVIDIA": "NVDA"
 }
 
+# Index ticker mapping with associated country
+index_ticker_map = {
+    "S&P 500": ("^GSPC", "New York"),
+    "FTSE 100": ("^FTSE", "London"),
+    "Nikkei 225": ("^N225", "Tokyo")
+}
+
 # City coordinates mapping
 city_coordinates = {
     "New York": (40.7128, -74.0060),
@@ -60,8 +67,9 @@ city_coordinates = {
 # Sidebar for navigation and inputs
 with st.sidebar:
     st.header("Navigation")
-    selected_tab = st.radio("Select Tab", ["Company Analysis", "Sentiment Analysis", "Combined Analysis"])
+    selected_tab = st.radio("Select Tab", ["Company Analysis", "Index Analysis", "Sentiment Analysis", "Combined Analysis"])
     company_name = st.selectbox("Select Company", options=list(company_ticker_map.keys()))
+    index_name = st.selectbox("Select Share Index", options=list(index_ticker_map.keys()), index=0)
     weather_city = st.selectbox("Select Weather City", options=list(city_coordinates.keys()))
     weather_var = st.selectbox("Select Weather Variable", options=["Temperature", "Precipitation"])
     historical_dates = st.date_input("Select Historical Period",
