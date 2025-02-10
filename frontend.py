@@ -4,6 +4,14 @@ import requests
 import datetime as dt
 import pandas as pd
 import plotly.graph_objects as go
+import requests
+from bs4 import BeautifulSoup
+from googlesearch import search
+from textblob import TextBlob
+import nltk
+
+nltk.download('vader_lexicon')
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 # Set page configuration
 st.set_page_config(page_title="Weather & Stock Analysis Dashboard", layout="wide", initial_sidebar_state="expanded")
@@ -93,6 +101,42 @@ def preprocess_data(df):
 
     return df.sort_values("Datetime")
 
+def get_news_sentiment(stock_name, num_articles=10):
+    """
+    Fetches recent news articles related to the given stock or index and calculates sentiment.
+
+    :param stock_name: Stock ticker or index name.
+    :param num_articles: Number of news articles to analyze.
+    :return: Average sentiment score (-1 to 1).
+    """
+    query = f"{stock_name} stock news"
+    news_headlines = []
+
+    # Use Google Search to get news links
+    for url in search(query, num_results=num_articles):
+        if "news" in url or "finance" in url:
+            try:
+                response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+                soup = BeautifulSoup(response.text, "html.parser")
+
+                # Extract the headline (usually the <title> tag)
+                title_tag = soup.find("title")
+                if title_tag:
+                    news_headlines.append(title_tag.text.strip())
+
+            except Exception as e:
+                print(f"Error scraping {url}: {e}")
+
+    # Ensure we have news
+    if not news_headlines:
+        return None
+
+    # Sentiment Analysis using VADER
+    sid = SentimentIntensityAnalyzer()
+    sentiment_scores = [sid.polarity_scores(headline)["compound"] for headline in news_headlines]
+    avg_sentiment = sum(sentiment_scores) / len(sentiment_scores)
+
+    return avg_sentiment
 
 # --- Company Analysis ---
 if selected_tab == "Company Analysis" and run_button:
@@ -155,7 +199,14 @@ if selected_tab == "Company Analysis" and run_button:
 # --- Sentiment Analysis ---
 if selected_tab == "Sentiment Analysis":
     st.header("Sentiment Analysis")
-    st.write("Public sentiment analysis results will be displayed here. (Placeholder)")
+    selected_stock = st.selectbox("Select Stock or Index", list(company_ticker_map.keys()) + list(index_ticker_map.keys()))
+
+    if st.button("Analyze Sentiment"):
+        sentiment_score = get_news_sentiment(selected_stock)
+        if sentiment_score is not None:
+            st.write(f"Sentiment score for {selected_stock}: {sentiment_score:.4f}")
+        else:
+            st.warning("No tweets found for this stock/index.")
 
 # --- Combined Analysis ---
 if selected_tab == "Combined Analysis":
