@@ -72,16 +72,16 @@ city_coordinates = {
     "Tokyo": (35.6895, 139.6917),
 }
 
-# Sidebar for navigation and inputs
+# Sidebar for navigation and dynamic inputs
 with st.sidebar:
     st.header("Navigation")
-    selected_tab = st.radio("Select Tab", ["Company Analysis", "Index Analysis", "Sentiment Analysis", "Combined Analysis"])
-    company_name = st.selectbox("Select Company", options=list(company_ticker_map.keys()))
-    index_name = st.selectbox("Select Share Index", options=list(index_ticker_map.keys()), index=0)
-    weather_city = st.selectbox("Select Weather City", options=list(city_coordinates.keys()))
-    weather_var = st.selectbox("Select Weather Variable", options=["Temperature", "Precipitation"])
-    historical_dates = st.date_input("Select Historical Period",
-                                     [dt.datetime.today() - dt.timedelta(days=30), dt.datetime.today()])
+    selected_tab = st.radio("Select Analysis Type", ["Company Analysis", "Index Analysis", "Sentiment Analysis", "Combined Analysis"])
+
+    if selected_tab == "Company Analysis":
+        company_name = st.selectbox("Select Company", list(company_ticker_map.keys()))
+    weather_city = st.selectbox("Select Weather City", ["New York", "London", "Tokyo"])
+    weather_var = st.selectbox("Select Weather Variable", ["Temperature", "Precipitation"])
+    historical_dates = st.date_input("Select Historical Period", [dt.datetime.today() - dt.timedelta(days=30), dt.datetime.today()])
     run_button = st.button("Run Analysis")
 
 
