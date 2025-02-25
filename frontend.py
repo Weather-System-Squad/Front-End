@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from googlesearch import search
 from textblob import TextBlob
 import nltk
+from transformers import pipeline
 
 nltk.download('vader_lexicon')
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
@@ -102,13 +103,7 @@ def preprocess_data(df):
     return df.sort_values("Datetime")
 
 def get_news_sentiment(stock_name, num_articles=10):
-    """
-    Fetches recent news articles related to the given stock or index and calculates sentiment.
 
-    :param stock_name: Stock ticker or index name.
-    :param num_articles: Number of news articles to analyze.
-    :return: Average sentiment score (-1 to 1).
-    """
     query = f"{stock_name} stock news"
     news_headlines = []
 
@@ -131,12 +126,29 @@ def get_news_sentiment(stock_name, num_articles=10):
     if not news_headlines:
         return None
 
-    # Sentiment Analysis using VADER
-    sid = SentimentIntensityAnalyzer()
-    sentiment_scores = [sid.polarity_scores(headline)["compound"] for headline in news_headlines]
-    avg_sentiment = sum(sentiment_scores) / len(sentiment_scores)
+    # Load the classification pipeline with the specified model
+    pipe = pipeline("text-classification", model="tabularisai/multilingual-sentiment-analysis")
 
-    return avg_sentiment
+    total_score = 0
+    num_headlines = len(news_headlines)
+
+    # Classify each headline and sum up the scores
+    for headline in news_headlines:
+        result = pipe(headline)[0]  # Extract the first result
+        score = result["score"]  # Extract the score
+        total_score += score
+
+        print(f"Headline: {headline}")
+        print(f"Sentiment: {result['label']} (Score: {score:.4f})\n")
+
+    # Calculate and print the average score
+    if num_headlines > 0:
+        avg_score = total_score / num_headlines
+        print(f"Average Sentiment Score: {avg_score:.4f}")
+    else:
+        print("No headlines to process.")
+
+    return avg_score
 
 # --- Company Analysis ---
 if selected_tab == "Company Analysis" and run_button:
@@ -201,7 +213,7 @@ if selected_tab == "Sentiment Analysis":
     st.header("Sentiment Analysis")
     selected_stock = st.selectbox("Select Stock or Index", list(company_ticker_map.keys()) + list(index_ticker_map.keys()))
 
-    if st.button("Analyze Sentiment"):
+    if st.button("Analyse Sentiment"):
         sentiment_score = get_news_sentiment(selected_stock)
         if sentiment_score is not None:
             st.write(f"Sentiment score for {selected_stock}: {sentiment_score:.4f}")
